@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"reflect"
 )
@@ -69,6 +70,10 @@ func doRoundTrip(c *Client, setHeaders func(*http.Request), in, out Message) err
 	if cli == nil {
 		cli = http.DefaultClient
 	}
+
+	fmt.Printf("URL: %s\n", c.URL)
+	fmt.Printf("REQUEST: %s \n", &b)
+
 	r, err := http.NewRequest("POST", c.URL, &b)
 	if err != nil {
 		return err
@@ -77,6 +82,7 @@ func doRoundTrip(c *Client, setHeaders func(*http.Request), in, out Message) err
 	if c.Pre != nil {
 		c.Pre(r)
 	}
+
 	resp, err := cli.Do(r)
 	if err != nil {
 		return err
@@ -86,13 +92,22 @@ func doRoundTrip(c *Client, setHeaders func(*http.Request), in, out Message) err
 		// read only the first Mb of the body in error case
 		limReader := io.LimitReader(resp.Body, 1024*1024)
 		body, _ := ioutil.ReadAll(limReader)
+		fmt.Printf("%v", body)
 		return fmt.Errorf("%q: %q", resp.Status, body)
 	}
-	return xml.NewDecoder(resp.Body).Decode(out)
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("ERROR: %s", err)
+	}
+
+	fmt.Printf("RESPONSE: %s \n", body)
+
+	return xml.NewDecoder(bytes.NewReader(body)).Decode(out)
 }
 
 // RoundTrip implements the RoundTripper interface.
-func (c *Client) RoundTrip(in, out Message) error {
+func (c *Client) RoundTrip(in, out Message, cookie string) error {
 	headerFunc := func(r *http.Request) {
 		ct := c.ContentType
 		if ct == "" {
@@ -102,6 +117,12 @@ func (c *Client) RoundTrip(in, out Message) error {
 		if in != nil {
 			r.Header.Add("SOAPAction", fmt.Sprintf("%s/%s", c.Namespace, reflect.TypeOf(in).Elem().Name()))
 		}
+
+		if cookie != "" {
+			r.Header.Set("Cookie", fmt.Sprintf("%v", cookie))
+		}
+
+		fmt.Printf("HEADER: %v\n", r.Header)
 	}
 	return doRoundTrip(c, headerFunc, in, out)
 }
