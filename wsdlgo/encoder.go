@@ -22,7 +22,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/fiorix/wsdl2go/wsdl"
+	"github.com/jhidalgo3/wsdl2go/wsdl"
 )
 
 // An Encoder generates Go code from WSDL definitions.
@@ -492,7 +492,7 @@ var soapFuncT = template.Must(template.New("soapFunc").Parse(
 			M {{.OutputType}} ` + "`xml:\"{{.XMLOutputType}}\"`" + `
 		}
 	}{}
-	if err = p.cli.RoundTrip(α, &γ); err != nil {
+	if err = p.cli.RoundTrip(α, &γ,""); err != nil {
 		return {{.RetDef}}, err
 	}
 	return {{if .RetPtr}}&{{end}}γ.Body.M, nil
@@ -523,7 +523,7 @@ func (ge *goEncoder) writeSOAPFunc(w io.Writer, d *wsdl.Definitions, op *wsdl.Op
 		return false
 	}
 	ge.needsStdPkg["encoding/xml"] = true
-	ge.needsExtPkg["github.com/fiorix/wsdl2go/soap"] = true
+	ge.needsExtPkg["github.com/jhidalgo3/wsdl2go/soap"] = true
 	in[0] = renameParam(in[0], "α")
 	out[0] = renameParam(out[0], "β")
 	typ := strings.SplitN(out[0], " ", 2)
@@ -579,7 +579,6 @@ func (ge *goEncoder) writeSOAPFunc(w io.Writer, d *wsdl.Definitions, op *wsdl.Op
 	})
 	return true
 }
-
 
 func renameParam(p, name string) string {
 	v := strings.SplitN(p, " ", 2)
